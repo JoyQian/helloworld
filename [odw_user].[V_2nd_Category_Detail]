@@ -1,0 +1,90 @@
+ALTER view [odw_user].[V_2nd_Category_Detail] as
+ 
+ ---Stk 
+ With A  As
+ (
+ SELECT 
+
+       Stk.[ULC_Week_Code] as 'Stk Week'
+      ,Stk.[DIVISION] 
+      ,Stk.[REGION]
+      ,Stk.[PROVINCE]
+      ,Stk.[BU] 
+      ,Stk.[CATEGORY] 
+      ,Stk.[SUB_CATEGORY]  
+      ,Stk.[STOCK_VALUE] As '当前库存值'
+      ,Stk.[STOCK_DAY] As '库存天数'
+	  ,DD.[Week Last Day]
+	 -- ,DD.[DAYS_IN_MONTH]
+	  ,stk.[ULC_WEEK_CODE]
+      ,stk.[MONTH]
+      ,stk.[ULC_QUARTER_CODE]
+      ,stk.[ULC_YEAR]
+  FROM 
+    [ODW_PS].odw_user.VT_F_SS_DTSTOCK_CATEGORY Stk
+   left join 
+   (select
+         D.[ULC_Week_Code]
+		--,D.[DAYS_IN_MONTH]
+	    ,max(D.UL_DAY_CODE) as 'Week Last Day'
+	from ODW_DM.ODW_USER.D_UL_DAY D
+	group by D.[ULC_Week_Code]) DD
+  on  DD.[ULC_Week_Code]=Stk.[ULC_Week_Code]
+  ---where Stk.[SUB_CATEGORY]='OMO AUTO POWDER'
+  ---and PROVINCE='吉林'
+  ---and Stk.[ULC_Week_Code] ='2016_WK22'
+  )
+
+ ,
+ C as 
+(select 
+   A.当前库存值
+  ,A.库存天数
+  ,A.[Week Last Day]
+  ,A.[Stk Week]
+  ,Sls.[DT_OTHERS_NIV]
+  ,Sls.[DT_RKA_NIV]
+  ,isnull( Sls.[DIVISION], A.[DIVISION]) as 'DIVISION'
+  ,isnull( Sls.[REGION] ,A.[REGION] ) as 'REGION'
+  ,isnull(Sls.[PROVINCE] ,A.[PROVINCE])  as 'PROVINCE'
+  ,isnull(Sls.[BU],A.[BU] )as 'BU'      
+  ,isnull( Sls.[CATEGORY] , A.[CATEGORY]) as 'CATEGORY'
+  ,isnull( Sls.[SUB_CATEGORY] ,A.[SUB_CATEGORY]) as 'SUB CATEGORY'
+  ,isnull( Sls.[ULC_Week_Code] , A.[Stk Week])as 'Week'
+  ,Sls.[UL_Day_Code] as 'Day'
+  ,isnull(Sls.[MONTH],A.[MONTH]) as 'Month'
+  ,isnull(Sls.[ULC_QUARTER_CODE],A.[ULC_QUARTER_CODE]) as 'Quarter'
+  ,isnull(Sls.[ULC_YEAR],A.[ULC_YEAR]) as 'Year'
+  from   [ODW_PS].[odw_user].[VT_F_SS_DTSALES_CATEGORY] Sls
+  full join A
+    on Sls.[ULC_Week_Code]=A.[Stk Week]
+  and  Sls.[PROVINCE] = A.[PROVINCE]
+  and  Sls.[SUB_CATEGORY]=  A.[SUB_CATEGORY])
+
+
+  Select 
+
+   C.当前库存值
+  ,C.库存天数
+  ,C.[Week Last Day]
+  ,C.[Stk Week]
+  ,C.[DT_OTHERS_NIV]
+  ,C.[DT_RKA_NIV]
+  ,C.[DIVISION]
+  ,C.[REGION]
+  ,C.[PROVINCE]
+  ,C.[BU]  
+  ,C.[CATEGORY]
+  ,C.[SUB CATEGORY]
+  ,C.[Week]
+  ,C.[Day]
+  ,C.[Month]
+  ,C.[Quarter]
+  ,C.[Year]
+  ,D.[DAYS_IN_MONTH]
+  ,count(*) over (partition by C.[Week],C.[SUB CATEGORY],C.[PROVINCE]) as [STK RECORD]
+  from  C
+
+  left join 
+   ODW_DM.ODW_USER.D_UL_DAY D
+   on C.[Day]=D.[UL_DAY_CODE]
